@@ -35,7 +35,7 @@ a + b
 class(a)
 
 # objets textuels
-mot <- "Bonjour"
+mot <- "Bonjour :)"
 mot
 
 class(mot)
