@@ -26,6 +26,7 @@ library(newsmap)
 2 + 2
 
 a <- 1
+a
 
 b <- 2
 
