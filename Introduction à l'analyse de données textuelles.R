@@ -83,7 +83,7 @@ names(vec_num) <- vec_char
 vec_num
 
 # importer un document ou un corpus (journal des débats de l'Assemblée nationale 15 septembre 2021)
-journal_debats <- readtext("Journal des débats.txt") %>% corpus()
+journal_debats <- readtext("Journal_debats.txt") %>% corpus()
 
 # la fonction file.choose() permet d'obtenir le chemin vers un fichier sur votre disque
 
