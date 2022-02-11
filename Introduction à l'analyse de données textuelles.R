@@ -9,6 +9,8 @@
 # install.packages("newsmap")
 # install.packages("seededlda")
 # install.packages("newsmap")
+# install.packages("readxl")
+# install.packages("writexl")
 
 library(quanteda)
 library(quanteda.textmodels)
@@ -21,47 +23,55 @@ library(spacyr)
 library(newsmap)
 library(seededlda)
 library(newsmap)
+library(readxl)
+library(writexl)
 
-# objets numériques
+# Calculs
 2 + 2
 
+# attribuer une valeur à un objet
 a <- 1
+
+# imprimer l'objet
 a
 
 b <- 2
 
 a + b
 
+# vérifier la classe de l'objet
 class(a)
 
 # objets textuels
 mot <- "Bonjour :)"
+
+# imprimer l'objet
 mot
 
+# vérifier la classe de l'objet
 class(mot)
 
-# les vecteurs
+# vecteur numérique
 vec_num <- c(1, 5, 6, 3)
+
+# imprimer l'objet
 vec_num
 
+# vecteur textuel
 vec_char <- c("pomme", "banane", "mandarine", "melon")
-vec_char[3]
 
-class(vec_char)
+# sélectionner des éléments
+vec_char[3]
+vec_char[2:4]
 
 # obtenir la longueur d'un vecteur
 length(vec_num)
-
-# sélectionner des éléments
-vec_char[1]
-vec_char[2]
-vec_char[2:4]
 
 # créer un vecteur logique
 vec_char == "pomme"
 
 # additionner des vecteurs
-vec_char2 <- c("test", "lol", "XD", "wow")
+vec_char2 <- c("bleu", "rouge", "vert", "mauve")
 vec_char3 <- c(vec_char, vec_char2)
 vec_char3
 
@@ -72,87 +82,67 @@ paste(vec_char, vec_char2)
 names(vec_num) <- vec_char
 vec_num
 
-# créer un jeu de données
-data.frame(name = vec_char, count = vec_num)
+# importer un document ou un corpus (journal des débats de l'Assemblée nationale 15 septembre 2021)
+journal_debats <- readtext("Journal des débats.txt") %>% corpus()
 
-# importer un document ou un corpus
-path_data <- system.file("extdata/", package = "readtext")
-dat_inaug <- read.csv(paste0(path_data, "/csv/inaugCorpus.csv"))
+# la fonction file.choose() permet d'obtenir le chemin vers un fichier sur votre disque
 
-# trois types d'objets quanteda (corpus, tokens, document-feature matrix)
+# pour obtenir le nombre de documents dans notre corpus
+ndoc(journal_debats)
 
-# types de corpus: 
-# 1. Un vecteur de caractères composé d'un document par élément
-# 2. Un bloc de données composé d'un vecteur de caractères pour les documents et 
-# de vecteurs supplémentaires pour les variables au niveau du document
+# premier niveau
+journal_debats[1]
 
-
-# British election manifestos on immigration and asylum
-corp_immig <- corpus(data_char_ukimmig2010, 
-                     docvars = data.frame(party = names(data_char_ukimmig2010)))
-
-class(corp_immig)
-
-corp_immig %>% head()
-
-corp_immig[1]
-
-corp_immig[[1]]
+# deuxième niveau
+journal_debats[[1]]
 
 # corpus_reshape() permet de changer l'unité des textes entre les documents, les paragraphes et les phrases
-corpus <- corpus(data_char_ukimmig2010)
-ndoc(corpus)
-corpus[[3]]
 
-corpus <- corpus_reshape(corpus, to = "sentences")
-ndoc(corpus)
-corpus[[3]]
+journal_debats_phrases <- corpus_reshape(journal_debats, to = "sentences")
+ndoc(journal_debats_phrases)
+journal_debats_phrases[[2]]
 
+# tokens() segmente les textes d'un corpus
+journal_debats_toks <- tokens(journal_debats)
+journal_debats_toks[1]
 
-# Journal des débats de l'Assemblée nationale 15 septembre 2021
-journal_debats <- readtext("Corpus/Journal des débats.txt", cache = FALSE)
-journal_debats <- corpus(journal_debats)
-journal_debats
-
-# tokens() segmente les textes d'un corpus en tokens (mots ou phrases)
-journal_debats[1]
-journal_debats <- tokens(journal_debats)
-journal_debats[1]
-
-# voir comment les mots-clés sont utilisés dans les contextes réels dans une vue de concordance
-toks <- tokens(journal_debats)
-kwic(toks, pattern =  "duplessis", window = 10)[1]
-kwic(toks, pattern =  "woke", window = 8)[1]
+# chercher un mot et lire les passages où il apparaît
+kwic(journal_debats_toks, pattern =  "duplessis", window = 10)[1]
+kwic(journal_debats_toks, pattern =  "woke", window = 8)[1]
 
 # trouver des expressions composées de plusieurs mots
-kwic(toks, pattern = phrase("Québec solidaire")) %>% head()
+kwic(journal_debats_toks, pattern = phrase("Québec solidaire")) %>% head()
 
-# pour segmenter et retirer la ponctuation
-toks_nopunct <- tokens(toks, remove_punct = TRUE)
+# segmenter et retirer la ponctuation
+toks_nopunct <- tokens(journal_debats_toks, remove_punct = TRUE)
 toks_nopunct[1]
 
-# retirer les stopwords
+# retirer les stopwords (vecteur de mots qui ne sont pas d'intérêt)
 stopwords("fr")
 toks_nostop <- tokens_remove(toks_nopunct, pattern = stopwords("fr"))
 toks_nostop[1]
-
-# tokens_compound()??????. https://tutorials.quanteda.io/basic-operations/tokens/tokens_compound/
-
-# utiliser un dictionnaire
-dict <- dictionary(file = "Dictionnaires/frlsd.cat")
-length(dict)
-names(dict)
-
-tokens_lookup(toks_nostop, dictionary = dict)
-
-kwic(toks_nostop, dict["POSITIVE"]) %>% head()
 
 # créer son propre dictionnaire
 dict <- dictionary(list(pandémie = c("virus", "contagion", "covid", "confinement"),
                         économie = c("PIB", "emploi", "croissance économique")))
 
+# 
 kwic(toks_nostop, dict, window = 5) %>% head()
+
 kwic(toks_nostop, dict["pandémie"], window = 3) %>% head()
+
+
+# utiliser un dictionnaire préexistant (source: https://www.poltext.org/fr/donnees-et-analyses/lexicoder)
+dict <- dictionary(file = "frlsd.cat")
+
+# obtenir le nombre de catégories comprises dans le dictionnaire
+length(dict)
+
+# obtenir le nom des catégories
+names(dict)
+
+# voir les premiers mots positifs du corpus
+kwic(toks_nostop, dict["POSITIVE"]) %>% head()
 
 # construire un DFM (document-feature matrix)
 dfmat_journal_debats <- dfm(toks_nostop)
@@ -161,15 +151,34 @@ dfmat_journal_debats
 # les mots les plus utilisés peuvent être trouvées en utilisant topfeatures()
 topfeatures(dfmat_journal_debats, 10)
 
+# Comment produire des résultats préliminaires en créant un dataframe
 
-# ATTENTION LES PROCHAINES ÉTAPES NÉCESSITENT UN CORPUS PLUTÔT QU'UN SEUL DOCUMENT
+data <- toks_nostop
 
-# convertir le nombre d'occurences en une proportion dans les documents, utilisez dfm_weight(scheme = "prop")
-dfmat_journal_debats_prop <- dfm_weight(dfmat_journal_debats, scheme  = "prop")
+# Définir categories
+categories <- names(dict)
 
-# pondérer le score de fréquence par unicité des caractéristiques dans les documents à l'aide de dfm_tfidf()
-dfmat_journal_debats_tfidf <- dfm_tfidf(dfmat_journal_debats)
-dfmat_journal_debats_tfidf
+# Créer dataframe
+df <- data.frame(categories = categories)
+df$categories <- as.character(df$categories)
+df
 
+# Compter nombre de termes par categories
+df$nbr <- NA
+for (i in 1:length(df$categories)) {
+  df$nbr[i] <- nrow(kwic(data, dict[df$categories[i]])[,1])
+}
+df
 
+# Calculer pourcentage
+df$pourcentage <- round(df$nbr/sum(df$nbr)*100, 2)
+df
 
+# Calculer total
+df$categories <- as.character(df$categories)
+total <- c("Total", sum(df$nbr), NA, NA)
+df <- rbind(df, total)
+df
+
+# Exporter en fichier excel
+write_xlsx(df, "Résultats.xlsx")
